@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Pro Fit Tracker (Offline)</title>
+    
+    <style>
+        /* --- 1. RESET & BASE --- */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        :root {
+            --primary: #6a11cb;
+            --secondary: #2575fc;
+            --yellow: #ffff00; /* BRIGHT YELLOW */
+            --bg-grad-1: #c4b5fd; --bg-grad-2: #a5f3fc; --bg-grad-3: #fda4af;
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --text-main: #2d3436;
+            --text-muted: #636e72;
+            --card-bg: #ffffff;
+            --success: #10b981;
+            --danger: #f43f5e;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Dark Mode Variables */
+        .dark {
+            --text-main: #ffffff;
+            --text-muted: #cbd5e1; /* Brighter muted text for dark mode */
+            --glass-bg: rgba(15, 23, 42, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --card-bg: #1e293b;
+            --bg-grad-1: #0f172a; --bg-grad-2: #1e1b4b; --bg-grad-3: #312e81;
+        }
+
+        body {
+            font-family: var(--font-family);
+            margin: 0; padding: 0;
+            color: var(--text-main);
+            background: linear-gradient(-45deg, var(--bg-grad-1), var(--bg-grad-2), var(--bg-grad-1), var(--bg-grad-3));
+            background-size: 300% 300%;
+            animation: gradientBG 20s ease infinite;
+            min-height: 100vh;
+            padding-bottom: 20px;
+            transition: color 0.3s;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* --- 2. LAYOUT UTILITIES --- */
+        .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; position: relative; }
+        .section { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 24px; animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        .hidden { display: none !important; }
+        
+        .flex-row { display: flex; align-items: center; }
+        .flex-col { display: flex; flex-direction: column; }
+        .justify-between { justify-content: space-between; }
+        .justify-center { justify-content: center; }
+        .gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; }
+        .mt-2 { margin-top: 8px; } .mb-1 { margin-bottom: 4px; } .mb-4 { margin-bottom: 16px; } .mb-6 { margin-bottom: 24px; }
+        .text-center { text-align: center; } .text-right { text-align: right; }
+
+        /* --- 3. COMPONENTS & GLASSMORPHISM --- */
+        .glass, .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .glass:active { transform: scale(0.98); }
+
+        .glass-strong {
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 50px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .dark .glass-strong { background: rgba(30,41,59,0.9); }
+
+        /* Inputs */
+        input {
+            width: 100%; padding: 14px 16px;
+            border: 2px solid transparent; border-radius: 16px;
+            background: rgba(255, 255, 255, 0.8);
+            font-size: 16px; color: #000;
+            font-family: inherit;
+            transition: 0.3s;
+        }
+        .dark input { background: rgba(30, 41, 59, 0.8); color: #fff; }
+        input:focus { outline: none; border-color: var(--primary); transform: translateY(-2px); }
+
+        /* Specific Inputs */
+        .input-transparent { background: transparent !important; border: none !important; padding: 0 !important; box-shadow: none !important; }
+        .name-input { font-size: 32px; font-weight: 800; width: 200px; color: var(--text-main); }
+        .weight-input { width: 60px !important; text-align: right; font-size: 20px; font-weight: bold; color: var(--text-main); border-bottom: 2px solid transparent !important; border-radius: 0 !important; }
+        .weight-input:focus { border-color: var(--primary) !important; transform: none !important; }
+
+        /* Buttons */
+        .btn-icon { width: 48px; height: 48px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; background: var(--glass-bg); color: var(--text-muted); transition: 0.2s; }
+        .btn-icon:active { transform: scale(0.9); }
+        
+        /* Cards */
+        .card-gradient-purple { background: linear-gradient(135deg, #a855f7, #3b82f6); color: white; }
+        .card-gradient-blue { background: linear-gradient(135deg, #06b6d4, #2563eb); color: white; }
+        .card-gradient-green { background: linear-gradient(135deg, #10b981, #34d399); color: white; }
+        .card-gradient-gym { background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: white; }
+
+        /* Typography */
+        .title-lg { font-size: 36px; font-weight: 900; margin: 0; }
+        .title-md { font-size: 20px; font-weight: 800; }
+        .text-sm { font-size: 14px; }
+        .text-xs { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; opacity: 0.7; }
+        .text-muted { color: var(--text-muted); }
+        .text-primary { color: var(--primary); }
+
+        /* Progress Bars */
+        .progress-track { background: rgba(0,0,0,0.1); height: 20px; border-radius: 10px; overflow: hidden; position: relative; margin-top: 10px; }
+        .dark .progress-track { background: rgba(255,255,255,0.1); }
+        .progress-fill { height: 100%; border-radius: 10px; transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1); background: white; }
+        .progress-fill.gradient { background: linear-gradient(90deg, #a855f7, #3b82f6); }
+
+        /* Grid */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+        /* List Items */
+        .list-item { padding: 16px; border-radius: 20px; margin-bottom: 12px; border: 1px solid transparent; cursor: pointer; transition: 0.2s; background: var(--card-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .list-item.checked { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); }
+        .dark .list-item.checked { background: rgba(16, 185, 129, 0.2); }
+        
+        .checkbox { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #ccc; display: flex; align-items: center; justify-content: center; margin-right: 12px; }
+        .checked .checkbox { background: var(--success); border-color: var(--success); }
+        .checked-text { text-decoration: line-through; opacity: 0.6; }
+
+        /* Shopping Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { width: 100%; max-width: 350px; background: var(--card-bg); padding: 24px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); max-height: 70vh; overflow-y: auto; }
+
+        /* Animations */
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-particle { position: fixed; width: 6px; height: 6px; border-radius: 50%; pointer-events: none; z-index: 9999; animation: particle 0.6s ease-out forwards; }
+        @keyframes particle { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0); } }
+
+        /* Icon Helper */
+        .icon { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        .icon-lg { width: 28px; height: 28px; }
+    </style>
+</head>
+<body class="transition-colors">
+
+    <div id="app" class="app-container">
+        
+        <section id="home-view" class="section">
+            
+            <div class="flex-row justify-between mt-2">
+                <div class="flex-col">
+                    <span class="text-xs">Welcome Back</span>
+                    <input type="text" id="user-name-input" oninput="updateName(this.value)" class="input-transparent name-input" placeholder="NAME" value="User">
+                </div>
+                <button onclick="toggleTheme()" class="btn-icon">
+                    <svg id="theme-icon" class="icon" viewBox="0 0 24 24"></svg>
+                </button>
+            </div>
+
+            <div class="glass flex-row justify-between" style="padding: 12px 16px;">
+                <span id="current-date-display" style="background: var(--text-main); color: var(--card-bg); padding: 6px 12px; border-radius: 10px; font-size: 12px; font-weight: bold;">Loading...</span>
+                <div class="flex-row" style="background: rgba(128,128,128,0.1); padding: 4px 12px; border-radius: 12px;">
+                    <svg class="icon" style="color: var(--primary); margin-right: 6px;" viewBox="0 0 24 24"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 14v-2"/><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                    <input type="number" id="user-weight-input" oninput="updateWeight(this.value)" placeholder="00" class="input-transparent weight-input">
+                    <span style="font-size: 12px; font-weight: bold; margin-left: 4px; opacity: 0.6;">KG</span>
+                </div>
+            </div>
+
+            <div class="glass" style="padding: 24px; position: relative; overflow: hidden;">
+                <div style="position: absolute; inset: 0; background: linear-gradient(90deg, #c4b5fd, #a5f3fc); opacity: 0.1;"></div>
+                <div class="flex-row justify-between mb-4">
+                    <div class="flex-row">
+                        <div style="background: rgba(106, 17, 203, 0.1); padding: 10px; border-radius: 12px; margin-right: 12px; color: var(--primary);">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.5-3.3.3-1.12.8-2.22 1.5-3.2.9 1 1.5 2.2 1.5 3.5Z"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-xs">Calories</p>
+                            <div class="flex-row" style="align-items: baseline;">
+                                <span id="display-calories" style="font-size: 32px; font-weight: 900;">0</span>
+                                <span style="font-size: 12px; font-weight: bold; margin-left: 4px; opacity: 0.6;">kcal</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs">Goal</p>
+                        <p class="title-md">1800</p>
+                    </div>
+                </div>
+                <div class="progress-track">
+                    <div id="calorie-bar" class="progress-fill gradient" style="width: 0%"></div>
+                </div>
+                <div class="flex-row justify-between mt-2 text-xs">
+                    <span>0%</span>
+                    <span id="calorie-percent-text" style="color: var(--primary);">0%</span>
+                    <span>100%</span>
+                </div>
+            </div>
+
+            <div class="card-gradient-blue" style="border-radius: 24px; padding: 24px; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);">
+                <div class="flex-row justify-between mb-6">
+                    <div class="flex-row">
+                        <div style="background: rgba(255,255,255,0.2); padding: 8px; border-radius: 10px; margin-right: 12px;">
+                            <svg class="icon" style="stroke: white;" viewBox="0 0 24 24"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-xs" style="color: rgba(255,255,255,0.8);">Hydration</p>
+                            <p style="font-weight: bold; font-size: 18px;">Daily Water</p>
+                        </div>
+                    </div>
+                    <div>
+                        <span id="water-display" style="font-size: 32px; font-weight: 900;">0</span>
+                        <span style="font-size: 14px; opacity: 0.8;">/4L</span>
+                    </div>
+                </div>
+                <div class="flex-row gap-4">
+                    <button onclick="updateWater(-1)" style="width: 44px; height: 44px; border-radius: 12px; background: rgba(0,0,0,0.2); border: none; color: white; font-size: 24px; cursor: pointer;">-</button>
+                    <div style="flex: 1; height: 12px; background: rgba(0,0,0,0.2); border-radius: 10px; overflow: hidden;">
+                        <div id="water-bar" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <button onclick="updateWater(1)" style="width: 44px; height: 44px; border-radius: 12px; background: white; border: none; color: #2563eb; font-size: 24px; cursor: pointer;">+</button>
+                </div>
+            </div>
+
+            <div class="grid-2 mt-2">
+                <button onclick="switchView('gym-view')" class="glass" style="padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; cursor: pointer;">
+                    <div style="background: rgba(139, 92, 246, 0.1); padding: 12px; border-radius: 50%; color: #8b5cf6;">
+                        <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></svg>
+                    </div>
+                    <div class="text-center">
+                        <span style="display: block; font-weight: 900; font-size: 18px;">GYM</span>
+                        <span class="text-xs">Start Workout</span>
+                    </div>
+                </button>
+                <button onclick="switchView('meal-view')" class="glass" style="padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; cursor: pointer;">
+                    <div style="background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 50%; color: #10b981;">
+                        <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+                    </div>
+                    <div class="text-center">
+                        <span style="display: block; font-weight: 900; font-size: 18px;">MEALS</span>
+                        <span class="text-xs">View Diet</span>
+                    </div>
+                </button>
+            </div>
+            
+            <div class="text-center" style="margin-top: 20px;">
+                <button onclick="forceUpdateApp()" style="background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 8px 16px; border-radius: 20px; font-size: 10px; font-weight: bold; cursor: pointer;">↻ RESET APP</button>
+                <p style="font-size: 9px; opacity: 0.5; margin-top: 5px;">v5.3 UI Polished</p>
+            </div>
+        </section>
+
+        <section id="meal-view" class="section hidden">
+            <div style="position: sticky; top: 0; z-index: 10;">
+                 <div class="glass-strong flex-row" style="padding: 8px 16px; display: inline-flex; gap: 12px;">
+                    <button onclick="switchView('home-view')" class="btn-icon" style="width: 36px; height: 36px; background: rgba(128,128,128,0.1);">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                    </button>
+                    <h1 style="font-size: 16px; font-weight: 900; margin: 0; text-transform: uppercase;">Meal Plan</h1>
+                </div>
+            </div>
+
+            <div class="card-gradient-green" style="padding: 24px; border-radius: 24px; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);">
+                <div class="flex-row gap-2 mb-2" style="opacity: 0.8;">
+                    <svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                    <span class="text-xs" style="color: white; opacity: 1;">Today's Menu</span>
+                </div>
+                <h2 id="meal-day-name" class="title-lg">Day</h2>
+            </div>
+
+            <div id="meal-list"></div>
+
+            <button onclick="toggleShop(true)" style="position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; background: var(--text-main); color: var(--card-bg); border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.3); font-size: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 50;">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            </button>
+        </section>
+
+        <section id="gym-view" class="section hidden">
+            <div style="position: sticky; top: 0; z-index: 10;">
+                <div class="glass-strong flex-row" style="padding: 8px 16px; display: inline-flex; gap: 12px;">
+                   <button onclick="switchView('home-view')" class="btn-icon" style="width: 36px; height: 36px; background: rgba(128,128,128,0.1);">
+                       <svg class="icon" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                   </button>
+                   <h1 style="font-size: 16px; font-weight: 900; margin: 0; text-transform: uppercase;">Workout</h1>
+               </div>
+           </div>
+
+            <div class="card-gradient-gym" style="padding: 24px; border-radius: 24px; box-shadow: 0 10px 20px rgba(139, 92, 246, 0.2);">
+                <div class="flex-row gap-2 mb-2" style="opacity: 0.8;">
+                    <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    <span class="text-xs" style="color: white; opacity: 1;">Focus</span>
+                </div>
+                <h2 id="gym-day-title" class="title-lg">Split</h2>
+            </div>
+
+            <div class="flex-row" style="background: rgba(128,128,128,0.1); padding: 6px; border-radius: 16px;">
+                <button id="gym-tab-1" onclick="switchGymSubTab(1)" style="flex: 1; border: none; background: transparent; padding: 10px; border-radius: 12px; font-weight: bold; cursor: pointer; color: var(--text-muted); transition: 0.2s;">Muscle 1</button>
+                <button id="gym-tab-2" onclick="switchGymSubTab(2)" style="flex: 1; border: none; background: transparent; padding: 10px; border-radius: 12px; font-weight: bold; cursor: pointer; color: var(--text-muted); transition: 0.2s;">Muscle 2</button>
+            </div>
+
+            <div id="exercise-list" class="flex-col gap-4"></div>
+        </section>
+
+        <div id="shopping-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <div class="flex-row justify-between mb-4">
+                    <h2 class="title-md flex-row gap-2">
+                        <svg class="icon" style="color: var(--success);" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                        Grocery
+                    </h2>
+                    <button onclick="toggleShop(false)" class="btn-icon" style="width: 32px; height: 32px; background: rgba(128,128,128,0.1);">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                </div>
+                <ul id="shopping-list-ul" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;"></ul>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATA ---
+        const exerciseVideos = {
+            "Bench Press": "https://drive.google.com/file/d/1Vwldxk7S5_qQcH5bU3FdtglUeetEb4PY/view?usp=drive_link",
+            "Chest Fly": "https://drive.google.com/file/d/1G5zrd8PNK3bSfWvYYIMD3gwdCDf2dA4y/view?usp=drive_link",
+            "Cable Cross": "https://drive.google.com/file/d/12rGD5s2zZsVL6Uxl6SZzu9Ijq-JWGgpf/view?usp=drive_link",
+            "Decline Press": "https://drive.google.com/file/d/13vVFK-rCvCLFRXbuGkrBmul2DoNjji9z/view?usp=drive_link",
+            "Pec Deck": "https://drive.google.com/file/d/1BzRtGvdJhd05RrU46p-lCHKlmXZKT3x1/view?usp=drive_link",
+            "Pullover": "https://drive.google.com/file/d/1ijIj_wdTrlKgtvosVwGUTuIXY4WtRIi8/view?usp=drive_link",
+            "Skull Crusher": "https://drive.google.com/file/d/18hRPv4mSuI2lKYhtTfpC6N4Jp7wA2vaA/view?usp=drive_link",
+            "Rope Pushdown": "https://drive.google.com/file/d/1see5qfM0jXh7xjfj4kB5YMMca5ejqDnz/view?usp=drive_link",
+            "Close Grip Press": "https://drive.google.com/file/d/1twe0jLNhNRgckm1RK-590jLAhBPF86B6/view?usp=drive_link",
+            "Kickback": "https://drive.google.com/file/d/1XMK1LJ54J5GaJ4ERhwqEs089oiAsdck_/view?usp=drive_link",
+            "Overhead Ext": "https://drive.google.com/file/d/1dfBd4gMTDT3DN37QW-oltf4JyE__k0yX/view?usp=drive_link",
+            "V-Bar Pushdown": "https://drive.google.com/file/d/1ythz0akM4xxeDIJfXMaWT8PIJ2jpU1OA/view?usp=drive_link",
+            "Cable Kickback": "https://drive.google.com/file/d/18qN6_39iP3U5YpZW4giQ8CnhAYAR5bTJ/view?usp=drive_link"
+        };
+
+        const gymSplit = {
+            Monday: ["CHEST", "TRICEP"], Tuesday: ["BACK", "BICEP"], Wednesday: ["LEG", "SHOULDER"],
+            Thursday: ["CHEST", "TRICEP"], Friday: ["BACK", "BICEP"], Saturday: ["LEG", "SHOULDER"],
+            Sunday: ["REST", "REST"]
+        };
+        const gymVariations = {
+            CHEST: { A: ["Bench Press", "Incline DB Press", "Chest Fly", "Push Ups", "Cable Cross"], B: ["Incline BB Press", "Decline Press", "Pec Deck", "Wide Push Ups", "Pullover"] },
+            TRICEP: { A: ["Dips", "Skull Crusher", "Rope Pushdown", "Close Grip Press", "Kickback"], B: ["Overhead Ext", "V-Bar Pushdown", "Bench Dips", "EZ Skull", "Cable Kickback"] },
+            BACK: { A: ["Pull Ups", "Lat Pulldown", "Barbell Row", "Seated Row", "Deadlift"], B: ["Chin Ups", "Single Arm Row", "T-Bar Row", "Pulldown", "Rack Pull"] },
+            BICEP: { A: ["Barbell Curl", "DB Curl", "Hammer Curl", "Cable Curl", "Concentration"], B: ["EZ Curl", "Incline Curl", "Preacher", "Reverse Curl", "Spider Curl"] },
+            LEG: { A: ["Squats", "Leg Press", "Lunges", "Leg Curl", "Calf Raise"], B: ["Front Squat", "Hack Squat", "Bulgarian Split", "RDL", "Seated Calf"] },
+            SHOULDER: { A: ["OHP", "Lateral Raise", "Front Raise", "Shrugs", "Reverse Fly"], B: ["Arnold Press", "Cable Lateral", "Upright Row", "DB Shrugs", "Face Pull"] }
+        };
+        const mealPlans = {
+            Monday: [{n:"Pre-Workout",t:"5:00 AM",d:"Protein oats 30g + Milk 200ml",c:200,ing:{Oats:30,Milk:200}}, {n:"Breakfast",t:"9:15 AM",d:"Moong dal chilla 80g + Chia 10g",c:420,ing:{MoongDal:80,Chia:10}}, {n:"Lunch",t:"1:30 PM",d:"Jowar roti 2 (180g) + Rajma 150g",c:520,ing:{Jowar:180,Rajma:150}}, {n:"Snack",t:"5:00 PM",d:"Black chana 80g",c:260,ing:{Chana:80}}, {n:"Dinner",t:"8:30 PM",d:"Soya chunks 60g + Veg 150g",c:400,ing:{Soya:60,Veg:150}}],
+            Tuesday: [{n:"Pre-Workout",t:"5:00 AM",d:"Protein oats 35g + Milk 150ml",c:220,ing:{Oats:35,Milk:150}}, {n:"Breakfast",t:"9:15 AM",d:"Egg omelette 3 eggs + Chia 10g",c:450,ing:{Eggs:3,Chia:10}}, {n:"Lunch",t:"1:30 PM",d:"Jowar roti 2 + Moong dal 150g",c:520,ing:{Jowar:180,MoongDal:150}}, {n:"Snack",t:"5:00 PM",d:"Black chana 70g",c:250,ing:{Chana:70}}, {n:"Dinner",t:"8:30 PM",d:"Soya chunks 50g + Veg",c:360,ing:{Soya:50,Veg:150}}],
+            Wednesday: [{n:"Pre-Workout",t:"5:00 AM",d:"Milk 250ml + Chia 10g",c:200,ing:{Milk:250,Chia:10}}, {n:"Breakfast",t:"9:15 AM",d:"Egg bhurji 3 eggs + Protein oats 30g",c:470,ing:{Eggs:3,Oats:30}}, {n:"Lunch",t:"1:30 PM",d:"Jowar roti 2 + Rajma 140g",c:510,ing:{Jowar:180,Rajma:140}}, {n:"Snack",t:"5:00 PM",d:"Black chana 70g",c:240,ing:{Chana:70}}, {n:"Dinner",t:"8:30 PM",d:"Moong dal 150g + Veg 150g",c:380,ing:{MoongDal:150,Veg:150}}],
+            Thursday: [{n:"Pre-Workout",t:"5:00 AM",d:"Protein oats 35g",c:210,ing:{Oats:35}}, {n:"Breakfast",t:"9:15 AM",d:"Moong chilla 80g + Milk 200ml",c:430,ing:{MoongDal:80,Milk:200}}, {n:"Lunch",t:"1:30 PM",d:"Jowar roti 2 + Soya chunks 50g",c:520,ing:{Jowar:180,Soya:50}}, {n:"Snack",t:"5:00 PM",d:"Black chana 80g",c:260,ing:{Chana:80}}, {n:"Dinner",t:"8:30 PM",d:"Rajma 150g + Veg 150g",c:380,ing:{Rajma:150,Veg:150}}],
+            Friday: [{n:"Pre-Workout",t:"5:00 AM",d:"Milk 200ml + Chia 10g",c:220,ing:{Milk:200,Chia:10}}, {n:"Breakfast",t:"9:15 AM",d:"Egg omelette 3 eggs + Protein oats 25g",c:460,ing:{Eggs:3,Oats:25}}, {n:"Lunch",t:"1:30 PM",d:"Jowar roti 2 + Moong dal 150g",c:520,ing:{Jowar:180,MoongDal:150}}, {n:"Snack",t:"5:00 PM",d:"Black chana 70g",c:240,ing:{Chana:70}}, {n:"Dinner",t:"8:30 PM",d:"Soya chunks 50g",c:360,ing:{Soya:50}}],
+            Saturday: [{n:"Pre-Workout",t:"5:00 AM",d:"Protein oats 30g + Milk 150ml",c:200,ing:{Oats:30,Milk:150}}, {n:"Breakfast",t:"9:15 AM",d:"Moong dal chilla 80g + Chia 10g",c:440,ing:{MoongDal:80,Chia:10}}, {n:"Lunch",t:"1:30 PM",d:"Jowar roti 2 + Rajma 150g",c:520,ing:{Jowar:180,Rajma:150}}, {n:"Snack",t:"5:00 PM",d:"Black chana 80g",c:260,ing:{Chana:80}}, {n:"Dinner",t:"8:30 PM",d:"Soya chunks 60g + Veg",c:380,ing:{Soya:60,Veg:150}}],
+            Sunday: [{n:"Pre-Workout",t:"5:00 AM",d:"Milk 250ml",c:210,ing:{Milk:250}}, {n:"Breakfast",t:"9:15 AM",d:"Egg bhurji 3 eggs + Protein oats 30g",c:470,ing:{Eggs:3,Oats:30}}, {n:"Lunch",t:"1:30 PM",d:"Jowar roti 2 + Moong dal 150g",c:520,ing:{Jowar:180,MoongDal:150}}, {n:"Snack",t:"5:00 PM",d:"Black chana 70g",c:240,ing:{Chana:70}}, {n:"Dinner",t:"8:30 PM",d:"Soya chunks 50g",c:360,ing:{Soya:50}}]
+        };
+
+        const CALORIE_LIMIT = 1800;
+        const WATER_GOAL = 4;
+        const today = new Date();
+        const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
+        const dateString = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const todayKey = today.toDateString();
+        let activeGymSubTab = 1;
+
+        // --- ICONS (SVG STRINGS) ---
+        const ICONS = {
+            moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+            sun: '<circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/>',
+            check: '<polyline points="20 6 9 17 4 12"/>',
+            play: '<polygon points="5 3 19 12 5 21 5 3"/>',
+            hash: '<line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="16" x2="14" y1="3" y2="21"/>',
+            repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+            dumbbell: '<path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/>'
+        };
+
+        function getIcon(name) { return ICONS[name] || ''; }
+
+        // --- HAPTICS & BURST ---
+        function vibrate(ms) { if(navigator.vibrate) navigator.vibrate(ms); }
+        function vibrateLight() { vibrate(20); } // Tab switch
+        function vibrateHeavy() { vibrate(40); } // Checkbox action
+
+        function triggerBlast(x, y, color) {
+            // Default center if x/y not provided
+            if (!x) x = window.innerWidth / 2;
+            if (!y) y = window.innerHeight / 2;
+            const colors = color === 'green' ? ['#10b981', '#34d399'] : ['#8b5cf6', '#a78bfa'];
+            
+            for(let i=0; i<12; i++) {
+                const p = document.createElement('div');
+                p.className = 'animate-particle';
+                p.style.left = x + 'px'; p.style.top = y + 'px';
+                p.style.backgroundColor = colors[Math.floor(Math.random()*2)];
+                const angle = Math.random()*360, speed = Math.random()*80+40;
+                p.style.setProperty('--tx', (Math.cos(angle)*speed)+'px');
+                p.style.setProperty('--ty', (Math.sin(angle)*speed)+'px');
+                document.body.appendChild(p);
+                setTimeout(()=>p.remove(), 600);
+            }
+        }
+
+        // --- INIT ---
+        function init() {
+            // Theme
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('theme-icon').innerHTML = getIcon('sun');
+            } else {
+                document.getElementById('theme-icon').innerHTML = getIcon('moon');
+            }
+            
+            // Reset Check
+            const storedDate = localStorage.getItem('lastActiveDate');
+            if (storedDate !== todayKey) {
+                localStorage.removeItem('gym_checked');
+                localStorage.removeItem('meal_checked');
+                localStorage.removeItem('waterCount');
+                localStorage.removeItem('userWeight'); 
+                localStorage.removeItem('gym_logs');
+                localStorage.setItem('lastActiveDate', todayKey);
+            }
+
+            // Fill UI
+            document.getElementById('user-name-input').value = localStorage.getItem('userName') || 'User';
+            document.getElementById('user-weight-input').value = localStorage.getItem('userWeight') || '';
+            document.getElementById('current-date-display').innerText = dateString;
+            
+            updateDashboard(true);
+        }
+
+        // --- DASHBOARD LOGIC ---
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start);
+                if (progress < 1) window.requestAnimationFrame(step);
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function updateDashboard(skipAnim = false) {
+            // Water
+            const w = parseInt(localStorage.getItem('waterCount') || '0');
+            const waterEl = document.getElementById('water-display');
+            const currentWater = parseInt(waterEl.innerText) || 0;
+            if(!skipAnim) animateValue(waterEl, currentWater, w, 500); else waterEl.innerText = w;
+            const wPct = Math.min((w / WATER_GOAL) * 100, 100);
+            document.getElementById('water-bar').style.width = `${wPct}%`;
+
+            // Calories
+            const plan = mealPlans[dayName] || [];
+            const checkedMap = JSON.parse(localStorage.getItem('meal_checked') || '{}');
+            let total = 0;
+            plan.forEach((m, i) => { if(checkedMap[i]) total += m.c; });
+            
+            const calEl = document.getElementById('display-calories');
+            const currentCal = parseInt(calEl.innerText) || 0;
+            if(!skipAnim && currentCal !== total) animateValue(calEl, currentCal, total, 800); else calEl.innerText = total;
+
+            const cPct = Math.min((total / CALORIE_LIMIT) * 100, 100);
+            document.getElementById('calorie-bar').style.width = `${cPct}%`;
+            document.getElementById('calorie-percent-text').innerText = `${Math.round(cPct)}%`;
+        }
+
+        function updateName(val) { localStorage.setItem('userName', val); }
+        function updateWeight(val) { localStorage.setItem('userWeight', val); }
+        function updateWater(delta) {
+            let current = parseInt(localStorage.getItem('waterCount') || '0');
+            let next = Math.max(0, current + delta);
+            localStorage.setItem('waterCount', next);
+            vibrateLight(); // Light vibrate on water add
+            updateDashboard();
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            document.getElementById('theme-icon').innerHTML = getIcon(isDark ? 'sun' : 'moon');
+            vibrateLight();
+            // Re-render views to apply theme specific JS styles
+            if (!document.getElementById('gym-view').classList.contains('hidden')) renderGymView();
+        }
+
+        function switchView(viewId) {
+            vibrateLight(); // Tab open vibrate
+            ['home-view', 'meal-view', 'gym-view'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            const target = document.getElementById(viewId);
+            target.classList.remove('hidden');
+            window.scrollTo(0,0);
+            if (viewId === 'meal-view') renderMealView();
+            if (viewId === 'gym-view') renderGymView();
+        }
+
+        function forceUpdateApp() {
+            if(confirm("Factory Reset everything (except name)?")) {
+                localStorage.clear();
+                window.location.reload();
+            }
+        }
+
+        // --- MEALS ---
+        function renderMealView() {
+            document.getElementById('meal-day-name').innerText = dayName;
+            const list = document.getElementById('meal-list');
+            const plan = mealPlans[dayName] || [];
+            const checkedMap = JSON.parse(localStorage.getItem('meal_checked') || '{}');
+
+            if(plan.length === 0) { list.innerHTML = `<p class="text-center text-muted" style="margin-top:20px">Rest Day</p>`; return; }
+
+            list.innerHTML = plan.map((m, i) => {
+                const isChecked = !!checkedMap[i];
+                return `
+                <div onclick="toggleMeal(${i}, event)" class="list-item flex-row ${isChecked ? 'checked' : ''}">
+                    <div class="checkbox">
+                        ${isChecked ? `<svg class="icon" viewBox="0 0 24 24" style="width:14px; stroke:var(--yellow); stroke-width:3;">${getIcon('check')}</svg>` : ''}
+                    </div>
+                    <div class="flex-col" style="flex:1;">
+                        <div class="flex-row justify-between mb-1">
+                            <span class="${isChecked ? 'checked-text' : ''}" style="font-weight:bold;">${m.n}</span>
+                            <span style="font-size:10px; font-weight:900; background:rgba(0,0,0,0.05); padding:2px 6px; border-radius:4px;">${m.c}</span>
+                        </div>
+                        <span class="text-xs text-primary mb-1">${m.t}</span>
+                        <span class="text-sm text-muted ${isChecked ? 'checked-text' : ''}">${m.d}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleMeal(index, event) {
+            const map = JSON.parse(localStorage.getItem('meal_checked') || '{}');
+            const isCheckedNow = !map[index];
+            map[index] = isCheckedNow;
+            localStorage.setItem('meal_checked', JSON.stringify(map));
+            
+            if(isCheckedNow) {
+                vibrateHeavy(); 
+                triggerBlast(event.clientX, event.clientY, 'green'); 
+            }
+            renderMealView();
+            updateDashboard(); // Updates Dashboard
+        }
+
+        // --- SHOPPING ---
+        function toggleShop(show) {
+            vibrateLight(); // Tab open vibrate
+            const modal = document.getElementById('shopping-modal');
+            if(show) {
+                modal.classList.remove('hidden');
+                const sum = {};
+                Object.values(mealPlans).forEach(day => day.forEach(m => { if(m.ing) for(let k in m.ing) sum[k] = (sum[k]||0) + m.ing[k]; }));
+                document.getElementById('shopping-list-ul').innerHTML = Object.entries(sum).map(([n, a]) => `
+                    <li class="flex-row justify-between" style="padding:12px; background:rgba(0,0,0,0.02); border-radius:12px; border:1px solid rgba(0,0,0,0.05);">
+                        <span style="font-size:14px; font-weight:bold;">${n}</span>
+                        <span style="font-size:12px; font-weight:bold; color:var(--success); background:rgba(16,185,129,0.1); padding:4px 8px; border-radius:6px;">${a}g</span>
+                    </li>
+                `).join('');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        // --- GYM ---
+        function renderGymView() {
+            const [m1, m2] = gymSplit[dayName] || ["REST", "REST"];
+            document.getElementById('gym-day-title').innerText = `${dayName} Split`;
+            const btn1 = document.getElementById('gym-tab-1');
+            const btn2 = document.getElementById('gym-tab-2');
+            btn1.innerText = m1; btn2.innerText = m2;
+            
+            // Tab Visibility Logic (Updated for Dark Mode)
+            const isDark = document.documentElement.classList.contains('dark');
+            const inactiveColor = isDark ? 'var(--text-main)' : 'var(--text-muted)';
+            const inactiveOpacity = isDark ? '0.7' : '1';
+
+            btn1.style.background = activeGymSubTab === 1 ? 'var(--card-bg)' : 'transparent';
+            btn1.style.color = activeGymSubTab === 1 ? 'var(--primary)' : inactiveColor;
+            btn1.style.opacity = activeGymSubTab === 1 ? '1' : inactiveOpacity;
+            btn1.style.boxShadow = activeGymSubTab === 1 ? '0 2px 5px rgba(0,0,0,0.1)' : 'none';
+            
+            btn2.style.background = activeGymSubTab === 2 ? 'var(--card-bg)' : 'transparent';
+            btn2.style.color = activeGymSubTab === 2 ? 'var(--primary)' : inactiveColor;
+            btn2.style.opacity = activeGymSubTab === 2 ? '1' : inactiveOpacity;
+            btn2.style.boxShadow = activeGymSubTab === 2 ? '0 2px 5px rgba(0,0,0,0.1)' : 'none';
+
+            renderExercises(activeGymSubTab === 1 ? m1 : m2);
+        }
+
+        function switchGymSubTab(n) { 
+            vibrateLight(); // Tab switch vibrate
+            activeGymSubTab = n; 
+            renderGymView(); 
+        }
+
+        function renderExercises(muscle) {
+            const container = document.getElementById('exercise-list');
+            if (muscle === "REST") { container.innerHTML = `<div class="text-center text-muted" style="padding:40px;">Rest & Recover</div>`; return; }
+            
+            const vType = ["Monday", "Tuesday", "Wednesday"].includes(dayName) ? "A" : "B";
+            const list = gymVariations[muscle]?.[vType] || [];
+            const checkedMap = JSON.parse(localStorage.getItem('gym_checked') || '{}');
+            const logs = JSON.parse(localStorage.getItem('gym_logs') || '{}');
+
+            container.innerHTML = list.map((ex, i) => {
+                const id = `${todayKey}-${activeGymSubTab}-${i}`;
+                const isChecked = !!checkedMap[id];
+                const log = logs[id] || { sets: '', reps: '', weight: '' };
+                const vid = exerciseVideos[ex];
+                
+                return `
+                <div class="glass" style="padding:20px; border:${isChecked ? '1px solid var(--primary)' : '1px solid transparent'}; background:${isChecked?'rgba(106,17,203,0.05)':''}">
+                    <div class="flex-row mb-4" onclick="toggleExercise('${id}', event)" style="cursor:pointer">
+                        <div class="checkbox ${isChecked?'checked':''}" style="margin-right:12px;">${isChecked?`<svg class="icon" viewBox="0 0 24 24" style="width:14px; stroke:var(--yellow); stroke-width:3;">${getIcon('check')}</svg>`:''}</div>
+                        <span style="font-weight:bold; font-size:18px; flex:1; ${isChecked?'opacity:0.5; text-decoration:line-through':''}">${ex}</span>
+                        ${vid ? `<a href="${vid}" target="_blank" onclick="event.stopPropagation()" style="width:36px; height:36px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2);"><svg class="icon" style="width:14px; fill:currentColor;" viewBox="0 0 24 24">${getIcon('play')}</svg></a>` : ''}
+                    </div>
+                    <div class="grid-3" style="${isChecked?'opacity:0.5; pointer-events:none':''}">
+                        ${renderInput(id, 'sets', 'hash', log.sets, 'Sets')}
+                        ${renderInput(id, 'reps', 'repeat', log.reps, 'Reps')}
+                        ${renderInput(id, 'weight', 'dumbbell', log.weight, 'Kg')}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderInput(id, field, icon, value, ph) {
+            return `
+            <div style="position:relative;">
+                <div style="position:absolute; left:10px; top:50%; transform:translateY(-50%); opacity:0.5;"><svg class="icon" style="width:12px;" viewBox="0 0 24 24">${getIcon(icon)}</svg></div>
+                <input type="number" placeholder="${ph}" value="${value}" oninput="updateLog('${id}', '${field}', this.value)" style="padding-left:30px; font-size:12px; font-weight:bold; height:36px;">
+            </div>`;
+        }
+
+        function toggleExercise(id, event) {
+            const map = JSON.parse(localStorage.getItem('gym_checked') || '{}');
+            const isCheckedNow = !map[id];
+            map[id] = isCheckedNow;
+            localStorage.setItem('gym_checked', JSON.stringify(map));
+            
+            if(isCheckedNow) {
+                vibrateHeavy(); 
+                triggerBlast(event.clientX, event.clientY, 'purple'); 
+            }
+            renderGymView();
+        }
+
+        function updateLog(id, f, v) {
+            const logs = JSON.parse(localStorage.getItem('gym_logs') || '{}');
+            if(!logs[id]) logs[id] = { sets:'', reps:'', weight:'' };
+            logs[id][f] = v;
+            localStorage.setItem('gym_logs', JSON.stringify(logs));
+        }
+
+        init();
+    </script>
+</body>
+</html>
